@@ -224,9 +224,15 @@ class IterativeWiener(object):
             self.noise_psd = self.alpha * self.noise_psd +\
                              (1 - self.alpha) * frame_energy
 
-            # update wiener filter
+            # update "wiener" filter
+            # not really wiener filter as we don't use speech PSD, since there's no speech!
+            # self.wiener_filt[:] = compute_wiener_filter(np.ones_like(self.speech_psd) * self.thresh,
+            #                                             self.noise_psd)
+            # self.wiener_filt[:] = compute_wiener_filter(self.noise_psd,
+            #                                             self.noise_psd)
             self.wiener_filt[:] = compute_wiener_filter(self.speech_psd,
                                                         self.noise_psd)
+
         else:   # speech frame
 
             s_i = current_frame

@@ -30,7 +30,7 @@ from .parameters import constants, eps
 from .sync import correlate
 
 
-def create_noisy_signal(signal_fp, snr, noise_fp=None):
+def create_noisy_signal(signal_fp, snr, noise_fp=None, offset=None):
     """
     Create a noisy signal of a specified SNR.
 
@@ -42,6 +42,8 @@ def create_noisy_signal(signal_fp, snr, noise_fp=None):
         SNR in dB.
     noise_fp : string
         File path to noise. Default is to use randomly generated white noise.
+    offset : float
+        Offset in seconds before starting the signal.
 
     Returns
     -------
@@ -56,38 +58,58 @@ def create_noisy_signal(signal_fp, snr, noise_fp=None):
 
     """
     fs, clean_signal = wavfile.read(signal_fp)
+    clean_signal = to_float32(clean_signal)
+
+    if offset is not None:
+        offset_samp = int(offset * fs)
+    else:
+        offset_samp = 0
+    output_len = len(clean_signal) + offset_samp
 
     if noise_fp is not None:
         fs_n, noise = wavfile.read(noise_fp)
+        noise = to_float32(noise)
         if fs_n != fs:
             raise ValueError("Signal and noise WAV files should have same "
-                             "sampling rate for this example.")
+                             "sampling rate.")
         # truncate to same length
-        if len(noise) < len(clean_signal):
+        if len(noise) < output_len:
             raise ValueError("Length of signal file should be longer than "
-                             "noise file for this example.")
-        noise = noise[:len(clean_signal)]
+                             "noise file.")
+        noise = noise[:output_len]
     else:
         if len(clean_signal.shape) > 1:   # multichannel
-            noise = np.random.randn(clean_signal.shape[0],
-                                    clean_signal.shape[1])
+            noise = np.random.randn(output_len, clean_signal.shape[1],
+                                    dtype=np.float32)
         else:
-            noise = np.random.randn(len(clean_signal))
+            noise = np.random.randn(output_len, dtype=np.float32)
 
     # weight noise according to desired SNR
-    signal_level = np.linalg.norm(clean_signal)
-    noise_level = np.linalg.norm(noise)
-    noise_fact = signal_level / 10 ** (snr / 20)
-    noise_weighted = noise * noise_fact / noise_level
+    signal_level = np.sqrt(np.mean(clean_signal * clean_signal))
+    noise_level = np.sqrt(np.mean(noise[offset_samp:] * noise[offset_samp:]))
+
+    noise_fact = signal_level / noise_level * 10 ** (-snr / 20)
+    noise_weighted = noise * noise_fact
 
     # add signal and noise
-    noisy_signal = clean_signal + noise_weighted
+    noisy_signal = np.r_[np.zeros(offset_samp, dtype=np.float32),
+                         clean_signal] + noise_weighted
     noisy_signal /= np.abs(noisy_signal).max()
 
     # remove any offset
     noisy_signal -= noisy_signal.mean()
 
     return noisy_signal, clean_signal, noise_weighted, fs
+
+
+def to_float32(data):
+
+    try:
+        max_val = abs(np.iinfo(data.dtype).min)
+    except:
+        max_val = 1.
+
+    return data.astype(np.float32) / max_val
 
 
 def to_16b(signal):
