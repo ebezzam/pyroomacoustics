@@ -27,3 +27,4 @@ References
 from .spectral_subtraction import *
 from .subspace import *
 from .iterative_wiener import *
+from .wiener import *

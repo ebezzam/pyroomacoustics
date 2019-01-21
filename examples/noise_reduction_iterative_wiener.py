@@ -41,8 +41,6 @@ wavfile.write(os.path.join(os.path.dirname(__file__), 'output_samples',
 """
 Apply approach
 """
-
-
 scnr = IterativeWiener(frame_len, lpc_order, iterations, alpha, threshold)
 
 # derived parameters
@@ -51,8 +49,6 @@ win = pra.hann(frame_len, flag='asymmetric', length='full')
 stft = pra.transform.STFT(frame_len, hop=hop,
                           analysis_window=win,
                           streaming=True)
-speech_psd = np.ones(hop+1)   # initialize PSD
-noise_psd = 0
 
 start_time = time.time()
 processed_audio = np.zeros(noisy_signal.shape)

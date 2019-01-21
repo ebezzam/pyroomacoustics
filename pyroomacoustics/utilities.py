@@ -91,7 +91,8 @@ def create_noisy_signal(signal_fp, snr, noise_fp=None, offset=None):
     noise_weighted = noise * noise_fact
 
     # add signal and noise
-    noisy_signal = clean_signal + noise_weighted
+    noisy_signal = np.r_[np.zeros(offset_samp, dtype=np.float32),
+                         clean_signal] + noise_weighted
 
     # ensure between [-1, 1]
     norm_fact = np.abs(noisy_signal).max()
