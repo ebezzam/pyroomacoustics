@@ -33,7 +33,6 @@ from .sync import correlate
 def create_noisy_signal(signal_fp, snr, noise_fp=None, offset=None):
     """
     Create a noisy signal of a specified SNR.
-
     Parameters
     ----------
     signal_fp : string
@@ -78,23 +77,28 @@ def create_noisy_signal(signal_fp, snr, noise_fp=None, offset=None):
                              "noise file.")
         noise = noise[:output_len]
     else:
-        if len(clean_signal.shape) > 1:   # multichannel
-            noise = np.random.randn(output_len, clean_signal.shape[1],
-                                    dtype=np.float32)
+        if len(clean_signal.shape) > 1:  # multichannel
+            noise = np.random.randn(output_len,
+                                    clean_signal.shape[1]).astype(np.float32)
         else:
-            noise = np.random.randn(output_len, dtype=np.float32)
+            noise = np.random.randn(output_len).astype(np.float32)
+        noise = normalize(noise)
 
     # weight noise according to desired SNR
-    signal_level = np.sqrt(np.mean(clean_signal * clean_signal))
-    noise_level = np.sqrt(np.mean(noise[offset_samp:] * noise[offset_samp:]))
-
+    signal_level = rms(clean_signal)
+    noise_level = rms(noise[offset_samp:])
     noise_fact = signal_level / noise_level * 10 ** (-snr / 20)
     noise_weighted = noise * noise_fact
 
     # add signal and noise
     noisy_signal = np.r_[np.zeros(offset_samp, dtype=np.float32),
                          clean_signal] + noise_weighted
-    noisy_signal /= np.abs(noisy_signal).max()
+
+    # ensure between [-1, 1]
+    norm_fact = np.abs(noisy_signal).max()
+    clean_signal /= norm_fact
+    noise_weighted /= norm_fact
+    noisy_signal /= norm_fact
 
     # remove any offset
     noisy_signal -= noisy_signal.mean()
@@ -102,14 +106,43 @@ def create_noisy_signal(signal_fp, snr, noise_fp=None, offset=None):
     return noisy_signal, clean_signal, noise_weighted, fs
 
 
+def rms(data):
+    """
+    Compute root mean square of input.
+
+    Parameters
+    ----------
+    data : numpy array
+        Real signal in time domain.
+
+    Returns
+    -------
+    float
+        Root mean square.
+    """
+    return np.sqrt(np.mean(data * data))
+
+
 def to_float32(data):
+    """
+    Cast data (typically from WAV) to float32.
 
-    try:
+    Parameters
+    ----------
+    data : numpy array
+        Real signal in time domain, typically obtained from WAV file.
+
+    Returns
+    -------
+    numpy array
+        `data` as float32.
+    """
+
+    if np.issubdtype(data.dtype, np.integer):
         max_val = abs(np.iinfo(data.dtype).min)
-    except:
-        max_val = 1.
-
-    return data.astype(np.float32) / max_val
+        return data.astype(np.float32) / max_val
+    else:
+        return data.astype(np.float32)
 
 
 def to_16b(signal):

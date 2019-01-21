@@ -109,7 +109,7 @@ class IterativeWiener(object):
 
     Below is an example of how to use this class to emulate a streaming/online
     input. A full example can be found
-    `here <https://github.com/LCAV/pyroomacoustics/blob/master/examples/noise_reduction_wiener_filtering.py>`_.
+    `here <https://github.com/LCAV/pyroomacoustics/blob/master/examples/noise_reduction_iterative_wiener.py>`_.
 
 
     ::
@@ -155,7 +155,7 @@ class IterativeWiener(object):
     iterations : int
         How many iterations to perform in updating the Wiener filter for each
         signal frame.
-    alpha : int
+    alpha : float
         Smoothing factor within [0,1] for updating noise level. Closer to `1`
         gives more weight to the previous noise level, while closer to `0`
         gives more weight to the current frame's level. Closer to `0` can track
@@ -195,7 +195,7 @@ class IterativeWiener(object):
 
     def compute_filtered_output(self, current_frame, frame_dft=None):
         """
-        Compute Wiener filter in the frequency domain.
+        Compute iterative Wiener filter output in the frequency domain.
 
         Parameters
         ----------
@@ -384,7 +384,7 @@ def apply_iterative_wiener(noisy_signal, frame_len=512, lpc_order=20,
     iterations : int
         How many iterations to perform in updating the Wiener filter for each
         signal frame.
-    alpha : int
+    alpha : float
         Smoothing factor within [0,1] for updating noise level. Closer to `1`
         gives more weight to the previous noise level, while closer to `0`
         gives more weight to the current frame's level. Closer to `0` can track
@@ -410,7 +410,7 @@ def apply_iterative_wiener(noisy_signal, frame_len=512, lpc_order=20,
     stft = STFT(frame_len, hop=hop, analysis_window=window, streaming=True)
     scnr = IterativeWiener(frame_len, lpc_order, iterations, alpha, thresh)
 
-    processed_audio = np.zeros(noisy_signal.shape)
+    processed_audio = np.zeros_like(noisy_signal)
     n = 0
     while noisy_signal.shape[0] - n >= hop:
         # SCNR in frequency domain

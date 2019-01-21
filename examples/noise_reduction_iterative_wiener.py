@@ -13,14 +13,14 @@ Test and algorithm parameters
 snr = 5         # SNR of input signal
 
 # the number of LPC coefficients to consider
-lpc_order = 20
+lpc_order = 15
 # the number of iterations to update wiener filter
 iterations = 2
 # FFT length
 frame_len = 512
 # parameter update of the sigma in sigma tracking
-alpha = 0.8   # smaller value allows noise floor to change faster
-threshold = 0.01
+alpha = 0.1   # smaller value allows noise floor to change faster
+threshold = 0.003
 
 plot_spec = True
 
@@ -41,7 +41,6 @@ wavfile.write(os.path.join(os.path.dirname(__file__), 'output_samples',
 """
 Apply approach
 """
-
 scnr = IterativeWiener(frame_len, lpc_order, iterations, alpha, threshold)
 
 # derived parameters
@@ -50,8 +49,6 @@ win = pra.hann(frame_len, flag='asymmetric', length='full')
 stft = pra.transform.STFT(frame_len, hop=hop,
                           analysis_window=win,
                           streaming=True)
-speech_psd = np.ones(hop+1)   # initialize PSD
-noise_psd = 0
 
 start_time = time.time()
 processed_audio = np.zeros(noisy_signal.shape)
@@ -105,5 +102,4 @@ if plot_spec:
     plt.title('Original Signal')
     plt.tight_layout(pad=0.5)
     plt.show()
-
 
